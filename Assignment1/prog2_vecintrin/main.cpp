@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <getopt.h>
 #include <math.h>
+#include <immintrin.h>
 #include "CS149intrin.h"
 #include "logger.h"
 using namespace std;
@@ -16,6 +17,7 @@ void absSerial(float *values, float *output, int N);
 void absVector(float *values, float *output, int N);
 void clampedExpSerial(float *values, int *exponents, float *output, int N);
 void clampedExpVector(float *values, int *exponents, float *output, int N);
+void clampedExpVectorSimd(float *values, int *exponents, float *output, int N);
 float arraySumSerial(float *values, int N);
 float arraySumVector(float *values, int N);
 bool verifyResult(float *values, int *exponents, float *output, float *gold, int N);
@@ -83,6 +85,22 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Passed!!!\n");
     }
+
+    clampedExpVectorSimd(values, exponents, output, N);
+
+    printf("\e[1;31mCLAMPED EXPONENT AVX2\e[0m (required) \n");
+    clampedCorrect = verifyResult(values, exponents, output, gold, N);
+    if (printLog)
+        CS149Logger.printLog();
+    CS149Logger.printStats();
+
+    printf("************************ Result Verification *************************\n");
+    if (!clampedCorrect){
+        printf("@@@ Failed!!!\n");
+    } else {
+        printf("Passed!!!\n");
+    }
+
 
     // Sum
     printf("\n\e[1;31mARRAY SUM\e[0m (bonus) \n");
@@ -296,6 +314,44 @@ void clampedExpVector(float *values, int *exponents, float *output, int N) {
         _cs149_vgt_float(maskIsGtMax, result, max, maskAll); // if (result > 9.999999f)
         _cs149_vmove_float(result, max, maskIsGtMax);        // result = 9.99999f
         _cs149_vstore_float(output + i, result, maskAll);    // output[i] = result
+    }
+    clampedExpSerial(values + (N - remainder), exponents + (N - remainder), output + (N - remainder), remainder);
+}
+
+void clampedExpVectorSimd(float* values, int* exponents, float* output, int N) {
+    __m256 max = _mm256_set1_ps(9.999999f); // __m256代表256位的float，set1代表广播
+    int remainder = N % VECTOR_WIDTH;
+    __m256i zero = _mm256_set1_epi32(0);
+    __m256i one = _mm256_set1_epi32(1);
+    __m256i maskAll = _mm256_set1_epi32(-1); // avx2的掩码是用向量表示的，每个元素的二进制最高位为1表示保留这个元素，所以用-1设置，因为-1的二进制表示最高位是1
+    for (int i = 0; i < N - remainder; i += VECTOR_WIDTH) {
+        __m256 x = _mm256_loadu_ps(values + i); // x = values[i]
+        __m256i y = _mm256_maskload_epi32(exponents + i, maskAll); // y = exponents[i]
+        __m256i maskIsZero = _mm256_cmpeq_epi32(y, zero);    // if y == 0
+        __m256 result = _mm256_blendv_ps(_mm256_set1_ps(0.f), _mm256_set1_ps(1.f), _mm256_castsi256_ps(maskIsZero));    // result[i] = 1.f
+
+        __m256i maskIsNotZero = _mm256_xor_si256(maskIsZero, _mm256_set1_epi32(-1)); // 对全1的向量异或即可对掩码取反
+        result = _mm256_blendv_ps(result, x, _mm256_castsi256_ps(maskIsNotZero)); // result = x
+        // 每一轮循环count要减的1要更新，result要乘的x也要更新
+        __m256i oneForCountToMinus = _mm256_cvtps_epi32(_mm256_blendv_ps(_mm256_cvtepi32_ps(zero), _mm256_cvtepi32_ps(one), _mm256_castsi256_ps(maskIsNotZero)));
+        __m256i count = _mm256_sub_epi32(y, oneForCountToMinus);
+        __m256i maskIsGtZero = _mm256_cmpgt_epi32(count, zero);
+        int mask = _mm256_movemask_ps(_mm256_castsi256_ps(maskIsGtZero));
+        int notZeroNum = __builtin_popcount(mask);
+        x = _mm256_blendv_ps(_mm256_cvtepi32_ps(one), x, _mm256_castsi256_ps(maskIsGtZero));
+        while (notZeroNum) {
+        result = _mm256_mul_ps(result, x); // result = result * x;
+        count = _mm256_sub_epi32(count, oneForCountToMinus);
+
+        maskIsGtZero = _mm256_cmpgt_epi32(count, zero);
+        mask = _mm256_movemask_ps(_mm256_castsi256_ps(maskIsGtZero));
+        notZeroNum = __builtin_popcount(mask);
+        x = _mm256_blendv_ps(_mm256_cvtepi32_ps(one), x, _mm256_castsi256_ps(maskIsGtZero));
+        oneForCountToMinus = _mm256_cvtps_epi32(_mm256_blendv_ps(_mm256_cvtepi32_ps(zero), _mm256_cvtepi32_ps(oneForCountToMinus), _mm256_castsi256_ps(maskIsGtZero)));
+        }
+        __m256 maskGtMax = _mm256_cmp_ps(result, max, _CMP_GT_OQ);
+        result = _mm256_blendv_ps(result, max, maskGtMax);
+        _mm256_storeu_ps(output + i, result);
     }
     clampedExpSerial(values + (N - remainder), exponents + (N - remainder), output + (N - remainder), remainder);
 }

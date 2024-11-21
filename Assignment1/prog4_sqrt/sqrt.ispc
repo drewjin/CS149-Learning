@@ -1,4 +1,3 @@
-
 static const float kThreshold = 0.00001f; 
 
 export void sqrt_ispc(uniform int N,
@@ -46,7 +45,6 @@ task void sqrt_ispc_task(uniform int N,
         }
 
         output[i] = x * guess;
-    
     }
 }
 

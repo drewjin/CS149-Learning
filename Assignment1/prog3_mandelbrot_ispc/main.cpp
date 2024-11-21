@@ -206,6 +206,5 @@ int main(int argc, char** argv) {
     delete[] output_ispc;
     delete[] output_ispc_tasks;
 
-
     return 0;
 }

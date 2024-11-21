@@ -6,9 +6,11 @@
 #include "CycleTimer.h"
 #include "sqrt_ispc.h"
 
+
 using namespace ispc;
 
 extern void sqrtSerial(int N, float startGuess, float* values, float* output);
+extern void sqrtVector(int N, float initialGuess, float values[], float output[]);
 
 static void verifyResult(int N, float* result, float* gold) {
     for (int i=0; i<N; i++) {
@@ -36,12 +38,14 @@ int main() {
         // starter code populates array with random input values
         values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
         
+        // 问题 2
         //最低加速比，每次8个ALU仅1个在反复迭代，并且是最长的迭代时间，其他均跳过 --> [1 0 0 0 0 0 0 0]
         // if (i % 8 == 0)
         //     values[i] = 2.999f; 
         // else
         //     values[i] = 1.000f;
 
+        // 问题 3
         // 最佳加速比，利用率最高 --> [1 1 1 1 1 1 1 1]
         // values[i] = 2.999f; 
     }
@@ -101,8 +105,21 @@ int main() {
 
     verifyResult(N, output, gold);
 
+    double minVector = 1e30;
+    for (int i = 0; i < 3; ++i) {
+        double startTime = CycleTimer::currentSeconds();
+        sqrtVector(N, initialGuess, values, output);
+        double endTime = CycleTimer::currentSeconds();
+        minVector = std::min(minVector, endTime - startTime);
+    }
+
+    printf("[sqrt avx2]:\t\t[%.3f] ms\n", minVector * 1000);
+
+    verifyResult(N, output, gold);
+
     printf("\t\t\t\t(%.2fx speedup from ISPC)\n", minSerial/minISPC);
     printf("\t\t\t\t(%.2fx speedup from task ISPC)\n", minSerial/minTaskISPC);
+    printf("\t\t\t\t(%.2fx speedup from vector avx2)\n", minSerial/minVector);
 
     delete [] values;
     delete [] output;

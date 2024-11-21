@@ -1,4 +1,4 @@
-CXX=g++ -m64 -march=native
+CXX=g++ -m64 -mavx2 -march=native
 CXXFLAGS=-I../common -Iobjs/ -O3 -Wall
 ISPC=ispc
 # note: requires AVX2 capable machine
@@ -26,7 +26,7 @@ dirs:
 clean:
 		/bin/rm -rf $(OBJDIR) *.ppm *~ $(APP_NAME)
 
-OBJS=$(OBJDIR)/main.o $(OBJDIR)/sqrtSerial.o $(OBJDIR)/sqrt_ispc.o $(PPM_OBJ) $(TASKSYS_OBJ)
+OBJS=$(OBJDIR)/main.o $(OBJDIR)/sqrtAVX.o $(OBJDIR)/sqrtSerial.o $(OBJDIR)/sqrt_ispc.o $(PPM_OBJ) $(TASKSYS_OBJ)
 
 $(APP_NAME): dirs $(OBJS)
 		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) -lm $(TASKSYS_LIB)
