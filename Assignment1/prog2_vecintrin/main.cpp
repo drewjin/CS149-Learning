@@ -269,8 +269,8 @@ void clampedExpVector(float *values, int *exponents, float *output, int N) {
     __cs149_vec_float y; // exponents
     __cs149_vec_float zero = _cs149_vset_float(0.f);
     __cs149_vec_float max = _cs149_vset_float(9.999999f);
-    __cs149_mask maskIsZero = _cs149_init_ones(0);
-    __cs149_mask maskAll = _cs149_init_ones(VECTOR_WIDTH);
+    __cs149_mask maskIsZero = _cs149_init_ones(0); // [false, false, false, false]
+    __cs149_mask maskAll = _cs149_init_ones(VECTOR_WIDTH); // [true, true, true, true]
     float f_exponents[N];
     for (int i = 0; i < N; i++) {
         f_exponents[i] = static_cast<float>(*(exponents + i));
@@ -309,6 +309,12 @@ float arraySumSerial(float *values, int N) {
     return sum;
 }
 
+void printVector(float *values, int N) {
+    printf("[");
+    for (int i = 0; i < N; i++) 
+        printf("%f ", values[i]);
+    printf("]\n");
+}
 
 // returns the sum of all elements in values
 // You can assume N is a multiple of VECTOR_WIDTH
@@ -321,14 +327,46 @@ float arraySumVector(float* values, int N) {
     float temp[VECTOR_WIDTH];
     float sum = 0;
     for (int i=0; i<N; i+=VECTOR_WIDTH) {
+        printf("[step]\n");
         __cs149_vec_float x;
         _cs149_vload_float(x, values + i, maskAll);
         for (int i = 0; i < log2(VECTOR_WIDTH); i++) {
-        _cs149_hadd_float(x, x);
-        _cs149_interleave_float(x, x);
+            printf("[round]\n");
+            _cs149_hadd_float(x, x);
+            printf("x hadd[%d]:", i);
+            printVector(x.value, VECTOR_WIDTH);
+            _cs149_interleave_float(x, x);
+            printf("x interleave[%d]:", i);
+            printVector(x.value, VECTOR_WIDTH);
         }
         _cs149_vstore_float(temp, x, maskAll);
         sum += temp[0];
+        printf("sum: %f\n", sum);
     }
     return sum;
 }
+
+/* 归约算法
+[step]
+[round]
+x hadd[0]:[4.493148 4.493148 2.987481 2.987481 1.020687 1.020687 3.268057 3.268057 ]
+x interleave[0]:[4.493148 2.987481 1.020687 3.268057 2.987481 3.268057 3.268057 3.268057 ]
+[round]
+x hadd[1]:[7.480628 7.480628 4.288744 4.288744 6.255538 6.255538 6.536114 6.536114 ]
+x interleave[1]:[7.480628 4.288744 6.255538 6.536114 4.288744 6.536114 6.536114 6.536114 ]
+[round]
+x hadd[2]:[11.769373 11.769373 12.791651 12.791651 10.824858 10.824858 13.072227 13.072227 ]
+x interleave[2]:[11.769373 12.791651 10.824858 13.072227 12.791651 13.072227 13.072227 13.072227 ]
+sum: 11.769373
+[step]
+[round]
+x hadd[0]:[1.109257 1.109257 -1.385871 -1.385871 -0.854122 -0.854122 4.047428 4.047428 ]
+x interleave[0]:[1.109257 -1.385871 -0.854122 4.047428 -1.385871 4.047428 4.047428 4.047428 ]
+[round]
+x hadd[1]:[-0.276614 -0.276614 3.193306 3.193306 2.661556 2.661556 8.094855 8.094855 ]
+x interleave[1]:[-0.276614 3.193306 2.661556 8.094855 3.193306 8.094855 8.094855 8.094855 ]
+[round]
+x hadd[2]:[2.916692 2.916692 10.756412 10.756412 11.288161 11.288161 16.189711 16.189711 ]
+x interleave[2]:[2.916692 10.756412 11.288161 16.189711 10.756412 16.189711 16.189711 16.189711 ]
+sum: 14.686065
+*/
