@@ -514,6 +514,21 @@ Note: This problem is a review to double-check your understanding, as it covers 
     implementation should be nearly as fast (or faster) than the binary 
     produced using ISPC. You may find the [Intel Intrinsics Guide](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) 
     very helpful.
+
+## 程序 4：迭代 `sqrt` （15 分） ##
+
+程序 4 是一个 ISPC 程序，用于计算 2000 万个介于 0 到 3 之间的随机数的平方根。它使用了一种快速的迭代实现方法，该方法采用牛顿法求解方程 ${\frac{1}{x^2}} - S = 0$。在这个实现中，初始猜测值为 1.0。下图显示了 `sqrt` 函数在 (0-3) 范围内收敛到准确解所需的迭代次数。（对于范围外的输入，该实现不会收敛。）请注意，收敛速度取决于初始猜测值的准确性。
+
+注：这个问题是一个复习题，旨在检查您对与程序 2 和 3 类似概念的理解。
+
+![sqrt 的收敛性](handout-images/sqrt_graph.jpg "sqrt 在 0-3 范围内，起始猜测值为 1.0 时的收敛性。请注意，当输入值为 1 时，收敛几乎是瞬时的，而当输入值接近 0 或 3 时，迭代次数增加（最高值出现在输入为 3 时）。")
+
+**你需要做的：**
+
+1. 构建并运行 `sqrt`。报告单个 CPU 核心（不使用任务）和使用所有核心（使用任务）时 ISPC 实现的加速比。由于 SIMD 并行化的加速比是多少？由于多核并行化的加速比是多少？
+2. 修改数组值的内容以提高 ISPC 实现的相对加速比。构造一个特定的输入，使 ISPC 实现（带任务和不带任务）相对于顺序版本的代码的加速比最大化，并报告所达到的加速比。你的修改是否提高了 SIMD 加速比？是否提高了多核加速比（即，从 ISPC 不带任务到 ISPC 带任务的好处）？请解释原因。
+3. 构造一个特定的输入，使 ISPC（不带任务）相对于顺序版本的代码的加速比最小化。描述这个输入，解释你选择它的原因，并报告 ISPC 实现的相对性能。效率损失的原因是什么？（请记住我们使用 `--target=avx2` 选项编译 ISPC，这会产生 8 宽的 SIMD 指令）。
+4. _额外加分：（最多 2 分）_ 使用 AVX2 内在函数手动编写 `sqrt` 函数。为了获得加分，你的实现应该几乎与使用 ISPC 生成的二进制文件一样快（或更快）。你可能会发现 [Intel 内在函数指南](https://software.intel.com/sites/landingpage/IntrinsicsGuide/) 非常有用。
  
 ## Program 5: BLAS `saxpy` (10 points) ##
 

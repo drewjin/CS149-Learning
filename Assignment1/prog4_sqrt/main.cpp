@@ -35,6 +35,15 @@ int main() {
         
         // starter code populates array with random input values
         values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+        
+        //最低加速比，每次8个ALU仅1个在反复迭代，并且是最长的迭代时间，其他均跳过 --> [1 0 0 0 0 0 0 0]
+        // if (i % 8 == 0)
+        //     values[i] = 2.999f; 
+        // else
+        //     values[i] = 1.000f;
+
+        // 最佳加速比，利用率最高 --> [1 1 1 1 1 1 1 1]
+        // values[i] = 2.999f; 
     }
 
     // generate a gold version to check results
