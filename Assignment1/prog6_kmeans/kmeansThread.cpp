@@ -1,8 +1,10 @@
 #include <algorithm>
+#include <vector>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <mutex>   
 
 #include "CycleTimer.h"
 
@@ -18,7 +20,13 @@ typedef struct {
     int *clusterAssignments;
     double *currCost;
     int M, N, K;
+
+    // Thread-specific
+    int threadId;
+    int numThreads;
 } WorkerArgs;
+
+constexpr int MAX_THREADS = 24;
 
 
 /**
@@ -76,8 +84,11 @@ void computeAssignments(WorkerArgs *const args) {
     // Assign datapoints to closest centroids
     for (int k = args->start; k < args->end; k++) {
         for (int m = 0; m < args->M; m++) {
-            double d = dist(&args->data[m * args->N],
-                            &args->clusterCentroids[k * args->N], args->N);
+            double d = dist(
+                &args->data[m * args->N],
+                &args->clusterCentroids[k * args->N], 
+                args->N
+            );
             if (d < minDist[m]) {
                 minDist[m] = d;
                 args->clusterAssignments[m] = k;
@@ -86,6 +97,111 @@ void computeAssignments(WorkerArgs *const args) {
     }
 
     free(minDist);
+}
+
+void computeAssignmentsThreadKernel_w_mutex(
+    WorkerArgs *const args, double *minDist, std::mutex &mtx) {
+    int k = args->threadId;
+    // Assign datapoints to closest centroids
+    for (int m = 0; m < args->M; m++) {
+        double d = dist(
+            &args->data[m * args->N],
+            &args->clusterCentroids[k * args->N], 
+            args->N
+        );
+        mtx.lock();
+        if (d < minDist[m]) {
+            minDist[m] = d;
+            args->clusterAssignments[m] = k;
+        }
+        mtx.unlock();
+    }
+}
+
+void computeAssignmentsThreads_1(WorkerArgs &args) {
+/*
+    Serial函数主要执行了两层循环，k遍历所有的聚类，m遍历所有的点，都每个点找到距离最近的聚类中心。
+    由于聚类的数量并不多，可以去掉最外层循环，改用多线程的方式，每个线程负责计算所有点到某个聚类
+    中心的距离。
+    写下多线程计算所有点到聚类中心距离的算法,由于K个线程都要访问minDist，访问时加锁：
+*/
+    std::thread threads[MAX_THREADS];
+    WorkerArgs threadArgs[MAX_THREADS];
+    double *minDist=new double[args.M];
+    int step=args.M/args.numThreads;
+    std::mutex mtx;
+
+    // Initialize arrays
+    for (int m = 0; m < args.M; m++) {
+        minDist[m] = 1e30;
+        args.clusterAssignments[m] = -1;
+    }
+    // Initialize threads
+    for (int i = 0; i < args.K; i++) {
+        threadArgs[i] = args;
+        threadArgs[i].threadId = i;
+    }
+    for (int i = 0; i < args.K; i++) 
+        threads[i] = std::thread(
+            computeAssignmentsThreadKernel_w_mutex, 
+            &threadArgs[i], minDist, ref(mtx)
+        );
+    for (int i = 0; i < args.K; i++)
+        threads[i].join();
+
+    free(minDist);
+}
+
+void computeAssignmentsThreadKernel_wo_mutex(
+    WorkerArgs *const args, double *minDist) {
+    int k = args->threadId;
+    for (int m = 0; m < args->M; m++) {
+        minDist[k*m]= dist(
+            &args->data[m * args->N],
+            &args->clusterCentroids[k * args->N], 
+            args->N
+        );
+    }
+}
+
+void computeAssignmentsThreads_2(WorkerArgs &args){
+/*
+    采用空间换时间的思想，创建一个double myDist[K * M]，存每个点到每个聚类中心的距离, 
+    每个线程同样对应一个单独的聚类中心。即，对于线程k，其计算的点m到聚类中心k的距离存在
+    myDist[k * m]处，
+    这样不同的线程对应了不同的内存空间，所以不需要加锁。所有线程都计算完毕后，再比较出每
+    个点最近的聚类中心。
+*/
+    std::thread workThread[MAX_THREADS];
+    WorkerArgs threadArg[MAX_THREADS];
+    double *myDist=new double[args.K*args.M];
+
+    for(int i = 0; i < args.K; i++){
+        threadArg[i]=args;
+        threadArg[i].threadId=i;
+    }
+    for(int i = 0; i < args.K; i++)
+        workThread[i]=std::thread(
+            computeAssignmentsThreadKernel_wo_mutex,
+            &threadArg[i], myDist
+        );
+    
+    for(int i = 0; i < args.K; i++)
+        workThread[i].join();
+    
+    for(int i = 0; i < args.M; ++i){
+        double mymin=myDist[i];
+        int k=0;
+        for(int j = 1; j < args.K; ++j){
+            if(myDist[j*i]<mymin){
+                mymin=myDist[j*i];
+                k=j;
+            }
+        }
+        args.clusterAssignments[i] = k;
+    }
+    free(myDist);
+    return ;
 }
 
 /**
@@ -173,7 +289,7 @@ void computeCost(WorkerArgs *const args) {
  */
 void kMeansThread(
     double *data, double *clusterCentroids, int *clusterAssignments,
-    int M, int N, int K, double epsilon) {
+    int M, int N, int K, double epsilon, int type) {
     // Used to track convergence
     double *prevCost = new double[K];
     double *currCost = new double[K];
@@ -188,6 +304,7 @@ void kMeansThread(
     args.M = M;
     args.N = N;
     args.K = K;
+    args.numThreads=4;
 
     // Initialize arrays to track cost
     for (int k = 0; k < K; k++) {
@@ -197,6 +314,17 @@ void kMeansThread(
 
     /* Main K-Means Algorithm Loop */
     int iter = 0;
+    double assigning_time = 0.0;
+    double centroid_time = 0.0;
+    double cost_time = 0.0;
+
+    if (type == 0)
+        printf("<<<Serial>>>\n");
+    else if (type == 1)
+        printf("<<<Threads_1>>>\n");
+    else
+        printf("<<<Threads_2>>>\n");
+
     while (!stoppingConditionMet(prevCost, currCost, epsilon, K)) {
         // Update cost arrays (for checking convergence criteria)
         for (int k = 0; k < K; k++) {
@@ -207,12 +335,41 @@ void kMeansThread(
         args.start = 0;
         args.end = K;
 
-        computeAssignments(&args);
+        // Time counting for each task
+        double assign_time_start = CycleTimer::currentSeconds();
+        if (type == 0)
+            computeAssignments(&args);
+        else if (type == 1)
+            computeAssignmentsThreads_1(args);
+        else
+            computeAssignmentsThreads_2(args);
+        
+        double assign_time_end = CycleTimer::currentSeconds();
+
+        double centroid_time_start = CycleTimer::currentSeconds();
         computeCentroids(&args);
+        double centroid_time_end = CycleTimer::currentSeconds();
+
+        double cost_time_start = CycleTimer::currentSeconds();
         computeCost(&args);
+        double cost_time_end = CycleTimer::currentSeconds();
+
+        assigning_time += (assign_time_end - assign_time_start);
+        centroid_time += (centroid_time_end - centroid_time_start);
+        cost_time += (cost_time_end - cost_time_start);
+
+        printf("Iteration %d: Assign time = %.3f ms, Centroid time = %.3f ms, Cost time = %.3f ms\n",
+            iter, 1000.f * (assign_time_end - assign_time_start),
+            1000.f * (centroid_time_end - centroid_time_start),
+            1000.f * (cost_time_end - cost_time_start));
 
         iter++;
     }
+
+    printf("[TOTAL] Assign time = %.3f ms, Centroid time = %.3f ms, Cost time = %.3f ms\n",
+            1000.f * assigning_time,
+            1000.f * centroid_time,
+            1000.f * cost_time);
 
     free(currCost);
     free(prevCost);

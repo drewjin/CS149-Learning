@@ -16,7 +16,7 @@ using namespace std;
 // Main compute functions
 extern void kMeansThread(double *data, double *clusterCentroids,
                       int *clusterAssignments, int M, int N, int K,
-                      double epsilon);
+                      double epsilon, int type);
 extern double dist(double *x, double *y, int nDim);
 
 // Utilities
@@ -131,11 +131,21 @@ int main() {
     // Log the starting state of the algorithm
     logToFile("./start.log", SAMPLE_RATE, data, clusterAssignments,
                 clusterCentroids, M, N, K);
+    
+    // double time_cost[3];
+    // for (int i = 0; i < 3; i++) {
+    //     double startTime = CycleTimer::currentSeconds();
+    //     kMeansThread(data, clusterCentroids, clusterAssignments, M, N, K, epsilon, i);
+    //     double endTime = CycleTimer::currentSeconds();
+    //     printf("[Total Time]: %.3f ms\n", (endTime - startTime) * 1000);
+    //     time_cost[i] = (endTime - startTime) * 1000;
+    // }
+    // printf("Acc. Rate[1]: %.3f\n", time_cost[0] / time_cost[1]);
+    // printf("Acc. Rate[2]: %.3f\n", time_cost[0] / time_cost[2]);
 
     double startTime = CycleTimer::currentSeconds();
-    kMeansThread(data, clusterCentroids, clusterAssignments, M, N, K, epsilon);
+    kMeansThread(data, clusterCentroids, clusterAssignments, M, N, K, epsilon, 1);
     double endTime = CycleTimer::currentSeconds();
-    printf("[Total Time]: %.3f ms\n", (endTime - startTime) * 1000);
 
     // Log the end state of the algorithm
     logToFile("./end.log", SAMPLE_RATE, data, clusterAssignments,
