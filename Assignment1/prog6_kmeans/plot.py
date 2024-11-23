@@ -3,11 +3,14 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from os.path import join
 
-START_LOGFILE = "./start.log"
-END_LOGFILE = "./end.log"
-START_PLOTFILE = "./start.png"
-END_PLOTFILE = "./end.png"
+root = '/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment1/prog6_kmeans'
+
+START_LOGFILE = join(root, "start.log")
+END_LOGFILE = join(root, "end.log")
+START_PLOTFILE = join(root, "start.png")
+END_PLOTFILE = join(root, "end.png")
 
 for title, logfile, plotfile in [("Start", START_LOGFILE, START_PLOTFILE), ("End", END_LOGFILE, END_PLOTFILE)]:
 

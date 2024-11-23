@@ -553,8 +553,19 @@ elements used. `saxpy` is a *trivially parallelizable computation* and features 
 Notes: Some students have gotten hung up on this question (thinking too hard) in the past. We expect a simple answer, but the results from running this problem might trigger more questions in your head.  Feel encouraged to come talk to the staff.
 
 
+### 程序 5: BLAS `saxpy` (10 分)
 
-## Program 6: Making `K-Means` Faster (15 points) ##
+程序 5 是 BLAS（基本线性代数子程序）库中的 `saxpy` 常规的实现，该库在许多系统上广泛使用且高度优化。`saxpy` 计算简单的操作 `result = scale * X + Y`，其中 `X`、`Y` 和 `result` 是包含 `N` 个元素的向量（在程序 5 中，`N` = 2000 万），`scale` 是一个标量。请注意，`saxpy` 每使用三个元素执行两次数学运算（一次乘法，一次加法）。`saxpy` 是一个*可轻松并行化的计算*，具有可预测的、规则的数据访问和可预测的执行成本。
+
+**你需要做的：**
+
+1. 编译并运行 `saxpy`。程序将报告使用 ISPC（无任务）和 ISPC（有任务）实现的 `saxpy` 的性能。你观察到了使用 ISPC 有任务的加速比是多少？解释该程序的性能。你认为它能否大幅改进？（例如，你能否重写代码以实现接近线性的加速？是或否？请说明你的理由。）
+2. **额外加分题：**（1 分）注意 `main.cpp` 中总内存带宽消耗的计算为 `TOTAL_BYTES = 4 * N * sizeof(float);`。即使 `saxpy` 从 `X` 加载一个元素，从 `Y` 加载一个元素，并将一个元素写入 `result`，乘以 4 也是正确的。这是为什么？（提示：考虑 CPU 缓存的工作原理。）
+3. **额外加分题：**（根据具体情况处理分数）提高 `saxpy` 的性能。我们希望看到显著的加速，而不仅仅是几个百分点。如果成功，请描述你是如何做到的，以及在这类系统上最佳可能的实现能达到什么效果。此外，如果成功，请告诉工作人员，我们会很感兴趣。;-)
+
+注：过去有些学生在这个问题上纠结过（想得太多）。我们期望一个简单的答案，但运行这个问题的结果可能会引发你更多的思考。如果你有任何疑问，鼓励你来找工作人员交流。
+
+## Program 6: Making `K-Means` Faster (15 points) 
 
 Program 6 clusters one million data points using the K-Means data clustering algorithm ([Wikipedia](https://en.wikipedia.org/wiki/K-means_clustering), [CS 221 Handout](https://stanford.edu/~cpiech/cs221/handouts/kmeans.html)). If you're unfamiliar with the algorithm, don't worry! The specifics aren't important to the exercise, but at a high level, given K starting points (cluster centroids), the algorithm iteratively updates the centroids until a convergence criteria is met. The results can be seen in the below images depicting the state of the algorithm at the beginning and end of the program, where red stars are cluster centroids and the data point colors correspond to cluster assignments.
 
@@ -579,6 +590,53 @@ Tips / Notes:
 - Once you've used timers to isolate hotspots, to improve the code make sure you understand the relative sizes of K, M, and N.
 - Try to prioritize code improvements with the potential for high returns and think about the different axes of parallelism available in the problem and how you may take advantage of them.
 - **The objective of this program is to give you more practice with learning how to profile and debug performance oriented programs. Even if you don't hit the performance target, if you demonstrate good/thoughtful debugging skills in the writeup you'll still get most of the points.**
+
+## 程序6：加速 `K-Means`（15 分）
+
+程序6要求你对一百万个数据点进行聚类，使用的是 K-Means 数据聚类算法（[维基百科](https://en.wikipedia.org/wiki/K-means_clustering)，[CS 221讲义](https://stanford.edu/~cpiech/cs221/handouts/kmeans.html)）。如果你对这个算法不熟悉，不用担心！具体的细节对本练习来说并不重要，但从高层次来看，算法以K个初始点（即簇中心）开始，迭代更新中心点，直到满足收敛条件为止。程序的开始和结束状态可以从下图中看到，红星代表簇中心，数据点的颜色对应其簇分配。
+
+![K-Means 初始和结束状态](./handout-images/kmeans.jpg "K-Means 算法应用于二维数据时的初始和结束状态")
+
+在提供的初始代码中，已经实现了一个正确的 K-Means 算法，但目前的实现效率不够高，需要改进。这就是你的任务！你需要找出实现中的**性能瓶颈**并提出改进方案。本题的关键技能是**定位性能热点**。我们不会告诉你该关注代码的哪个部分，需要你自己找出代码的主要耗时部分，并插入计时代码进行测量。根据测量结果，集中关注占用运行时间显著的部分，仔细理解其逻辑，并探索提升效率的方法。
+
+**你的任务是：**
+
+1. 使用以下命令在当前目录（确保你在 `prog6_kmeans` 目录）中创建一个指向数据集的符号链接：
+   ```bash
+   ln -s /afs/ir.stanford.edu/class/cs149/data/data.dat ./data.dat
+   ```
+   这个数据文件比较大（~800MB），因此推荐这种访问方式。但如果你希望下载本地副本，可以在个人电脑上运行以下命令：
+   ```bash
+   scp [你的 SUNetID]@myth[51-66].stanford.edu:/afs/ir.stanford.edu/class/cs149/data/data.dat ./data.dat
+   ```
+   数据准备好后，编译并运行 `kmeans`（首次加载数据可能会较慢）。程序会报告算法处理数据的总运行时间。
+   
+2. 使用以下命令安装绘图所需的依赖包：
+   ```bash
+   pip install -r requirements.txt
+   ```
+   然后运行以下命令：
+   ```bash
+   python3 plot.py
+   ```
+   这会根据运行 `kmeans` 时生成的日志文件（`start.log` 和 `end.log`）创建图像文件 `start.png` 和 `end.png`。这些文件将保存在当前目录，应该与上述示例图像类似。  
+   __注意：你可能会发现，并非所有点都分配到“最近”的簇中心，这是正常的。__ （想了解原因的同学：我们将 100 维数据点投影到二维，通过 [PCA](https://en.wikipedia.org/wiki/Principal_component_analysis) 可视化。因此，虽然 100 维数据点在高维空间中接近合适的中心点，但数据点和中心点的投影在二维空间中可能并不接近。）只要聚类结果看起来“合理”（参考第2步生成的示例图像），并且大部分点分配到最近簇中心，代码仍然是正确的。
+   
+3. 使用 `common/CycleTimer.h` 提供的计时功能，找出代码的性能瓶颈。你需要调用 `CycleTimer::currentSeconds()`，它返回当前时间（单位为秒）的浮点数。确定代码的运行时间主要花在哪些部分。
+
+4. 根据上一阶段的结果，优化实现。我们希望程序运行速度提高约 2.1 倍或更多（即 $\frac{oldRuntime}{newRuntime} \geq 2.1$）。请详细说明你是如何找到问题所在、提出改进方案，以及最终实现和性能提升。你的总结应描述一个步骤序列，类似于：
+   - “我测量了……，这让我发现 X。为改进性能，我尝试了……，结果加速/减速了……。”
+
+**约束条件：**
+- 你只能修改 `kmeansThread.cpp` 中的代码。禁止修改 `stoppingConditionMet` 函数，也不能更改 `kMeansThread` 的接口，但其他部分可以修改（例如，可以向 `WorkerArgs` 结构体添加新成员，重写函数，分配新数组等）。但要注意：
+- **不要改变实现的功能！** 如果算法无法收敛，或运行 `python3 plot.py` 生成的结果与初始代码输出的图像不同，则代码可能有问题。例如，你不能简单地移除主循环 `while` 或更改 `dist` 函数的语义，因为这会导致结果不正确。
+- **注意：** 你只能并行化以下函数中的一个：`dist`、`computeAssignments`、`computeCentroids`、`computeCost`。有关如何使用 `std::thread` 编写并行代码的示例，请参阅 `prog1_mandelbrot_threads/mandelbrotThread.cpp`。
+
+**提示/注意事项：**
+- 本题的代码量不多。我们的解决方案仅修改/添加了约20-25行代码。
+- 找出性能热点后，请确保了解 K、M 和 N 的相对大小。
+- 优先考虑高回报的优化方向，并思考如何利用问题中可用的不同并行化维度。
+- **本程序的目标是让你练习性能调试和分析技能。即使没有达到性能目标，如果你在总结中展现了良好的分析和调试思路，也能拿到大部分分数。**
 
 ## What About ARM-Based Macs? ##
 
