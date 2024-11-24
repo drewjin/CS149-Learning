@@ -20,12 +20,35 @@ This assignment will require you to:
 * Implement a task scheduler that reflects dependencies defined by a task graph
 * Understand workload characteristics to make efficient task scheduling decisions
 
+## 概述 ##
+
+每个人都喜欢快速完成任务，而在这个作业中，我们要求你做到这一点！你需要实现一个 C++ 库，能够在多核 CPU 上尽可能高效地执行应用程序提供的任务。
+
+在作业的第一部分，你将实现一个支持 **批量（数据并行）** 启动许多相同任务实例的任务执行库。这种功能类似于你在作业 1 中使用 [ISPC 的任务启动行为](http://ispc.github.io/ispc.html#task-parallelism-launch-and-sync-statements)，实现跨核并行化代码的方式。
+
+在作业的第二部分，你将扩展你的任务运行时系统，使其能够执行更复杂的 **任务图**，其中任务的执行可能依赖于其他任务的结果。这些依赖关系会限制哪些任务可以安全地并行运行，因此你的任务调度系统需要考虑这些约束。在并行机器上对数据并行任务图进行调度执行是许多流行的并行运行时系统的一项重要功能，例如广泛使用的 [Thread Building Blocks](https://github.com/intel/tbb) 库、[Apache Spark](https://spark.apache.org/)，以及现代深度学习框架如 [PyTorch](https://pytorch.org/) 和 [TensorFlow](https://www.tensorflow.org/)。
+
+完成该作业需要你：
+
+- 使用线程池管理任务执行
+- 利用同步原语（如互斥锁和条件变量）协调工作线程的执行
+- 实现一个能反映任务图中依赖关系的任务调度器
+- 理解工作负载特性并做出高效的任务调度决策
+
 ### Wait, I Think I've Done This Before? ###
 
 You may have already created thread pools and task execution libraries in classes such as CS107 or CS111.
 However, the current assignment is a unique opportunity to better understand these systems.
 You will implement multiple task execution libraries, some without thread pools and some with different types of thread pools.
 By implementing multiple task scheduling strategies and comparing their performance on difference workloads, you will better understand the implications of key design choices when creating a parallel system.
+
+### 等等，我好像之前做过类似的任务？ ###
+
+你可能已经在 CS107 或 CS111 等课程中创建过线程池和任务执行库。  
+然而，这次作业是一个更深入理解这些系统的独特机会。  
+
+你将实现多个任务执行库，其中一些不使用线程池，而另一些使用不同类型的线程池。  
+通过实现多种任务调度策略并比较它们在不同工作负载上的性能表现，你将更好地理解在构建并行系统时关键设计选择所带来的影响。
 
 ## Environment Setup ##
 
@@ -36,6 +59,21 @@ The assignment starter code is available on [Github](https://github.com/stanford
     https://github.com/stanford-cs149/asst2/archive/refs/heads/master.zip
 
 **IMPORTANT:** DO NOT modify the provided `Makefile`. Doing so may break our grading script.
+
+## 环境设置 ##
+
+**我们将在 Amazon AWS 的 `c7g.4xlarge` 实例上对本次作业进行评分。**  
+有关设置虚拟机 (VM) 的详细说明，请参考 [此处](https://github.com/stanford-cs149/asst2/blob/master/cloud_readme.md)。  
+请确保你的代码可以在该虚拟机上正常运行，因为我们将使用它进行性能测试和评分。
+
+作业的起始代码已上传至 [Github](https://github.com/stanford-cs149/asst2)。请在以下链接下载 Assignment 2 的起始代码：
+
+```
+https://github.com/stanford-cs149/asst2/archive/refs/heads/master.zip
+```
+
+**重要提示：**  
+请勿修改提供的 `Makefile` 文件，否则可能会导致我们的评分脚本无法正常运行。
 
 ## Part A: Synchronous Bulk Task Launch
 

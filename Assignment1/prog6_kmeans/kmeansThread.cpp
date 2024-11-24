@@ -204,6 +204,37 @@ void computeAssignmentsThreads_2(WorkerArgs &args){
     return ;
 }
 
+void computeAssignmentsThreads_3(WorkerArgs *const args) {
+    std::thread threads[MAX_THREADS];
+    double *minDist = new double[args->M];
+
+    // Initialize Threads
+    for (int i =0; i < MAX_THREADS; i++) 
+        threads[i] = std::thread([args, i, minDist] {
+            for (int m = i; m < args->M; m += MAX_THREADS) {
+                minDist[m] = 1e30;
+                args->clusterAssignments[m] = -1;
+                // Assign datapoints to closest centroids
+                for (int k = args->start; k < args->end; k++) {
+                    double d = dist(
+                        &args->data[m * args->N],
+                        &args->clusterCentroids[k * args->N], 
+                        args->N
+                    );
+                    if (d < minDist[m]) {
+                        minDist[m] = d;
+                        args->clusterAssignments[m] = k;
+                    }
+                }
+            }
+        });
+    
+    for (int i = 0; i < MAX_THREADS; i++) 
+        threads[i].join();
+
+    delete [] minDist;
+}
+
 /**
  * Given the cluster assignments, computes the new centroid locations for
  * each cluster.
@@ -322,8 +353,10 @@ void kMeansThread(
         printf("<<<Serial>>>\n");
     else if (type == 1)
         printf("<<<Threads_1>>>\n");
-    else
+    else if (type == 2)
         printf("<<<Threads_2>>>\n");
+    else
+        printf("<<<Threads_3>>>\n");
 
     while (!stoppingConditionMet(prevCost, currCost, epsilon, K)) {
         // Update cost arrays (for checking convergence criteria)
@@ -341,8 +374,10 @@ void kMeansThread(
             computeAssignments(&args);
         else if (type == 1)
             computeAssignmentsThreads_1(args);
-        else
+        else if (type == 2)
             computeAssignmentsThreads_2(args);
+        else
+            computeAssignmentsThreads_3(&args);
         
         double assign_time_end = CycleTimer::currentSeconds();
 

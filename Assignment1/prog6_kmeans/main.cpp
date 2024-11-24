@@ -144,7 +144,7 @@ int main() {
     // printf("Acc. Rate[2]: %.3f\n", time_cost[0] / time_cost[2]);
 
     double startTime = CycleTimer::currentSeconds();
-    kMeansThread(data, clusterCentroids, clusterAssignments, M, N, K, epsilon, 1);
+    kMeansThread(data, clusterCentroids, clusterAssignments, M, N, K, epsilon, 3);
     double endTime = CycleTimer::currentSeconds();
 
     // Log the end state of the algorithm
