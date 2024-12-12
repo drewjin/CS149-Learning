@@ -1,8 +1,11 @@
 #ifndef _ITASKSYS_H
 #define _ITASKSYS_H
 #include <vector>
+#include <thread>
 
 typedef int TaskID;
+
+constexpr int MAX_THREAD_NUM = 32;
 
 class IRunnable {
     public:
@@ -21,6 +24,10 @@ class IRunnable {
 };
 
 class ITaskSystem {
+    protected:
+        // 初始化线程
+        int num_threads;
+        std::vector<std::thread> threads;
     public:
         /*
           Instantiates a task system.
