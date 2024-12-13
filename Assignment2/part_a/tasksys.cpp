@@ -292,9 +292,11 @@ void TaskSystemParallelThreadPoolSpinning::run(IRunnable* runnable, int num_tota
     //
     std::vector<std::future<void>> futures;
     for (int i = 0; i < num_total_tasks; ++i) 
-        futures.emplace_back(m_thread_pool.submit([runnable, i, num_total_tasks]() {
-            runnable->runTask(i, num_total_tasks);
-        }));
+        futures.emplace_back(
+            m_thread_pool.submit([runnable, i, num_total_tasks]() {
+                runnable->runTask(i, num_total_tasks);
+            })
+        );
 
     // 等待所有任务完成
     for (auto& future : futures) 
