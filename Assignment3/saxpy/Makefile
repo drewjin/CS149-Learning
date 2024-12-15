@@ -11,9 +11,9 @@ CC_FILES   := main.cpp
 ARCH := $(shell uname -m)
 
 ifeq ($(ARCH), aarch64)
-    CXX = g++
+    CXX = g++ -g
 else
-    CXX = g++ -m64
+    CXX = g++ -g -m64
 endif
 
 OBJDIR=objs
@@ -25,18 +25,8 @@ else
 # Building on Linux
 LDFLAGS=-L/usr/local/cuda/lib64/ -lcudart
 endif
-
 NVCC=nvcc
-# NVCCFLAGS=-O3 -m64
-
-# Debug settings
-ifeq ($(DEBUG), 1)
-    CXXFLAGS=-g -O3 -Wall
-    NVCCFLAGS=-g -G -O3 -m64
-else
-    CXXFLAGS=-O3 -Wall
-    NVCCFLAGS=-O3 -m64
-endif
+NVCCFLAGS=-O0 -G -g -m64
 
 
 OBJS=$(OBJDIR)/main.o  $(OBJDIR)/saxpy.o
@@ -52,20 +42,11 @@ dirs:
 clean:
 		rm -rf $(OBJDIR) *.ppm *~ $(EXECUTABLE)
 
-# $(EXECUTABLE): dirs $(OBJS)
-# 		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
-
-# $(OBJDIR)/%.o: %.cpp
-# 		$(CXX) $< $(CXXFLAGS) -c -o $@
-
-# $(OBJDIR)/%.o: %.cu
-# 		$(NVCC) $< $(NVCCFLAGS) -c -o $@
-
 $(EXECUTABLE): dirs $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 $(OBJDIR)/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+		$(CXX) $< $(CXXFLAGS) -c -o $@
 
 $(OBJDIR)/%.o: %.cu
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+		$(NVCC) $< $(NVCCFLAGS) -c -o $@

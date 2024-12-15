@@ -1,1 +1,2 @@
-make -j24 DEBUG=1
+echo "Building..."
+make -j24

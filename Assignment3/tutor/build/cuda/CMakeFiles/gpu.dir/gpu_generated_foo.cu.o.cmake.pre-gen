@@ -72,7 +72,7 @@ set(generated_file_internal "/home/drew/Desktop/Parallel Computing-CS 149/CS149-
 set(generated_cubin_file_internal "/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/cuda/CMakeFiles/gpu.dir//./gpu_generated_foo.cu.o.cubin.txt") # path
 
 set(CUDA_NVCC_EXECUTABLE "/usr/local/cuda-12.4/bin/nvcc") # path
-set(CUDA_NVCC_FLAGS -gencode;arch=compute_52,code=sm_52;-G;-g ;; ) # list
+set(CUDA_NVCC_FLAGS  ;; ) # list
 # Build specific configuration flags
 set(CUDA_NVCC_FLAGS_DEBUG  ; )
 set(CUDA_NVCC_FLAGS_MINSIZEREL  ; )
