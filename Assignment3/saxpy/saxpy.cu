@@ -28,7 +28,7 @@ saxpy_kernel(int N, float alpha, float* x, float* y, float* result) {
     // this check is necessary to make the code work for values of N
     // that are not a multiple of the thread block size (blockDim.x)
     if (index < N)
-       result[index] = alpha * x[index] + y[index];
+        result[index] = alpha * x[index] + y[index];
 }
 
 
@@ -82,16 +82,27 @@ void saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultar
     //
     // CS149 TODO: copy input arrays to the GPU using cudaMemcpy
     //
+    cudaMalloc(&device_x, N * sizeof(float));
+    cudaMalloc(&device_y, N * sizeof(float));
+    cudaMalloc(&device_result, N * sizeof(float));
 
+    cudaMemcpy(device_x, xarray, N, cudaMemcpyHostToDevice);
+    cudaMemcpy(device_y, yarray, N, cudaMemcpyHostToDevice);
+
+
+    // double startTime = CycleTimer::currentSeconds();
    
     // run CUDA kernel. (notice the <<< >>> brackets indicating a CUDA
     // kernel launch) Execution on the GPU occurs here.
     saxpy_kernel<<<blocks, threadsPerBlock>>>(N, alpha, device_x, device_y, device_result);
 
+    // double endTime = CycleTimer::currentSeconds();
+
     //
     // CS149 TODO: copy result from GPU back to CPU using cudaMemcpy
     //
-
+    // cudaDeviceSynchronize();
+    cudaMemcpy(resultarray, device_result, N, cudaMemcpyDeviceToHost);
     
     // end timing after result has been copied back into host memory
     double endTime = CycleTimer::currentSeconds();
@@ -108,7 +119,10 @@ void saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultar
     //
     // CS149 TODO: free memory buffers on the GPU using cudaFree
     //
-    
+    cudaFree(device_x);
+    cudaFree(device_y);
+    cudaFree(device_result);
+    return;
 }
 
 void printCudaInfo() {
