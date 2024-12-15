@@ -1,0 +1,6 @@
+/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/CMakeFiles/project.dir
+/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/CMakeFiles/edit_cache.dir
+/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/CMakeFiles/rebuild_cache.dir
+/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/cuda/CMakeFiles/gpu.dir
+/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/cuda/CMakeFiles/edit_cache.dir
+/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/cuda/CMakeFiles/rebuild_cache.dir

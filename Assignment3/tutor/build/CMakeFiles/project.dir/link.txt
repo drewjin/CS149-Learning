@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -rdynamic CMakeFiles/project.dir/main.cpp.o -o project  -Wl,-rpath,"/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/tutor/build/cuda" cuda/libgpu.so /usr/local/cuda-12.4/lib64/libcudart_static.a -ldl -Wl,-Bstatic -lrt -Wl,-Bdynamic 

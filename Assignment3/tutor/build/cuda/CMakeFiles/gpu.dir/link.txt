@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -g -shared -Wl,-soname,libgpu.so -o libgpu.so CMakeFiles/gpu.dir/gpu_generated_foo.cu.o  /usr/local/cuda-12.4/lib64/libcudart_static.a -ldl -Wl,-Bstatic -lrt -Wl,-Bdynamic 
