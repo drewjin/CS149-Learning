@@ -2,14 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "C/C++ Runner: Debug Session",
+      "name": "CUDA SCAN",
+      "preLaunchTask": "ScanTask",
       "type": "cppdbg",
       "request": "launch",
-      "args": [],
+      "args": ["-m", "scan"],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/scan",
-      "program": "/home/drew/Desktop/Parallel Computing-CS 149/CS149-Learning/Assignment3/scan/build/Debug/outDebug",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/cudaScan",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

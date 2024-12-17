@@ -89,7 +89,6 @@ void saxpyCuda(int N, float alpha, float* xarray, float* yarray, float* resultar
     cudaMemcpy(device_x, xarray, N, cudaMemcpyHostToDevice);
     cudaMemcpy(device_y, yarray, N, cudaMemcpyHostToDevice);
 
-
     // double startTime = CycleTimer::currentSeconds();
    
     // run CUDA kernel. (notice the <<< >>> brackets indicating a CUDA

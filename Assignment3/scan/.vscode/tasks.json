@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "options": {
+      "cwd": "${workspaceFolder}"
+    },
+    "tasks": [
+        // Other tasks...,
+        {
+            // Task name, anything you want, must match the preLaunchTask in 
+            // launch.json
+            "label": "ScanTask",  
+            "type": "shell",
+            // Command: bash <script> <args...>
+            "command": "bash",
+            "args": [
+                // Your build script path
+                "${workspaceFolder}/build.sh"
+                // Build script arguments
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
