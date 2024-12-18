@@ -14,6 +14,39 @@
 
 #define THREADS_PER_BLOCK 256
 
+#define CHECK(call)                                   \
+do                                                    \
+{                                                     \
+    const cudaError_t error_code = call;              \
+    if (error_code != cudaSuccess)                    \
+    {                                                 \
+        printf("CUDA Error:\n");                      \
+        printf("    File:       %s\n", __FILE__);     \
+        printf("    Line:       %d\n", __LINE__);     \
+        printf("    Error code: %d\n", error_code);   \
+        printf("    Error text: %s\n",                \
+            cudaGetErrorString(error_code));          \
+        exit(1);                                      \
+    }                                                 \
+} while (0)
+
+#define DEBUG
+
+#ifdef DEBUG
+#define cudaCheckError(ans) { cudaAssert((ans), __FILE__, __LINE__); }
+inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr, "CUDA Error: %s at %s:%d\n", 
+        cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+#else
+#define cudaCheckError(ans) ans
+#endif
+
 
 // helper function to round an integer up to the next power of 2
 static inline int nextPow2(int n) {
@@ -43,41 +76,6 @@ static inline int nextPow2(int n) {
 // "in-place" scan, since the timing harness makes a copy of input and
 // places it in result
 __global__ void
-check_gpu_data(int *deivce_array, int length);
-
-__global__ void 
-__upsweep_phase(int N, int* result, int two_dplus1, int two_d);
-
-__global__ void 
-__downsweep_phase(int N, int* result, int two_dplus1, int two_d);
-
-void exclusive_scan(int* input, int N, int* result) {
-    // CS149 TODO:
-    //
-    // Implement your exclusive scan implementation here.  Keep in
-    // mind that although the arguments to this function are device
-    // allocated arrays, this is a function that is running in a thread
-    // on the CPU.  Your implementation will need to make multiple calls
-    // to CUDA kernel functions (that you must write) to implement the
-    // scan.
-    int64_t rounded_length = nextPow2(N);
-    for (int64_t two_d = 1; two_d < rounded_length; two_d *= 2) {
-        int64_t two_dplus1 = two_d << 1;
-        int64_t computation_nums = rounded_length / two_dplus1;
-        const int64_t blocks = (computation_nums + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-        __upsweep_phase<<<blocks, THREADS_PER_BLOCK>>>(N, result, two_dplus1, two_d);
-        cudaDeviceSynchronize();
-    }
-    for (int64_t two_d = N / 2; two_d >= 1; two_d /= 2) {
-        int64_t two_dplus1 = two_d << 1;
-        int64_t computation_nums = rounded_length / two_dplus1;
-        const int64_t blocks = (computation_nums + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-        __downsweep_phase<<<blocks, THREADS_PER_BLOCK>>>(N, result, two_dplus1, two_d);
-        cudaDeviceSynchronize();
-    }
-}
-
-__global__ void
 check_gpu_data(int *deivce_array, int length) {
     for (int i = 0; i < length; i += 1000) 
         printf("%d", deivce_array[i]);
@@ -85,24 +83,54 @@ check_gpu_data(int *deivce_array, int length) {
 }
 
 __global__ void 
-__upsweep_phase(int N, int* result, int two_dplus1, int two_d) {
+__upsweep_kernel(int computation_nums, int *result, int two_dplus1, int two_d) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (index < N) {
+    // 任务量不一定是线程块大小的整数倍，所以最后一个线程块会有一些线程超出任务量的范围，不要计算
+    if (index < computation_nums) {
         int i = index * two_dplus1;
         result[i + two_dplus1 - 1] += result[i + two_d - 1];
     }
 }
 
 __global__ void 
-__downsweep_phase(int N, int* result, int two_dplus1, int two_d) {
+__downsweep_kernel(int computation_nums, int *result, int two_dplus1, int two_d) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
-    if (index < N) {
+    if (index < computation_nums) {
         int i = index * two_dplus1;
         int t = result[i + two_d - 1];
-        if (i == 0)
+        // downsweep的最后一个数是0
+        if (i == 0) 
             result[i + two_dplus1 - 1] = 0;
         result[i + two_d - 1] = result[i + two_dplus1 - 1];
         result[i + two_dplus1 - 1] += t;
+    }
+}
+
+void exclusive_scan(int* input, int N, int* result) {
+    // CS149 TODO:
+    //
+    // Implement your exclusive scan implementation here. Keep in
+    // mind that although the arguments to this function are device
+    // allocated arrays, this is a function that is running in a thread
+    // on the CPU.  Your implementation will need to make multiple calls
+    // to CUDA kernel functions (that you must write) to implement the
+    // scan.
+    int64_t rounded_length = nextPow2(N);
+    // upsweep phase
+    for (int64_t two_d = 1; two_d <= rounded_length / 2; two_d *= 2) {
+        int64_t two_dplus1 = two_d << 1;
+        int64_t computation_nums = rounded_length / two_dplus1;
+        const int64_t blocks = (computation_nums + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+        __upsweep_kernel<<<blocks, THREADS_PER_BLOCK>>>(computation_nums, result, two_dplus1, two_d);
+        cudaDeviceSynchronize();
+    }
+    // downsweep phase
+    for (int64_t two_d = rounded_length / 2; two_d >= 1; two_d /= 2) {
+        int64_t two_dplus1 = two_d << 1;
+        int64_t computation_nums = rounded_length / two_dplus1;
+        const int64_t blocks = (computation_nums + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+        __downsweep_kernel<<<blocks, THREADS_PER_BLOCK>>>(computation_nums, result, two_dplus1, two_d);
+        cudaDeviceSynchronize();
     }
 }
 
@@ -195,8 +223,13 @@ double cudaScanThrust(int* inarray, int* end, int* resultarray) {
 // indices `i` for which `device_input[i] == device_input[i+1]`.
 //
 // Returns the total number of pairs found
-int find_repeats(int* device_input, int length, int* device_output) {
+__global__ void
+__find_repeats_kernel() {
 
+}
+
+
+int find_repeats(int* device_input, int length, int* device_output) {
     // CS149 TODO:
     //
     // Implement this function. You will probably want to

@@ -6,13 +6,13 @@
       "preLaunchTask": "ScanTask",
       "type": "cppdbg",
       "request": "launch",
-      "args": ["-m", "scan"],
+      "args": ["-m", "scan", "-n", "100000"],
       "stopAtEntry": false,
       "externalConsole": false,
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/cudaScan",
       "MIMode": "gdb",
-      "miDebuggerPath": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",

@@ -24,7 +24,7 @@ void usage(const char* progname) {
 
 void cpu_exclusive_scan(int* start, int* end, int* output) {
 
-//#define PARALLEL 1
+// #define PARALLEL 1
 #ifdef PARALLEL
 
     // note to students: this C code can be helpful when debugging the
@@ -37,9 +37,8 @@ void cpu_exclusive_scan(int* start, int* end, int* output) {
     // upsweep phase
     for (int twod = 1; twod < N/2; twod*=2) {
         int twod1 = twod*2;
-	
         for (int i = 0; i < N; i += twod1) {
-	    output[i+twod1-1] = output[i+twod-1] + output[i+twod1-1];
+	        output[i+twod1-1] = output[i+twod-1] + output[i+twod1-1];
         }
     }
 

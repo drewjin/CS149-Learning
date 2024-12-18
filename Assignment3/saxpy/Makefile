@@ -17,7 +17,7 @@ else
 endif
 
 OBJDIR=objs
-CXXFLAGS=-O3 -Wall
+CXXFLAGS=-O0 -Wall
 ifeq ($(ARCH), Darwin)
 # Building on mac
 LDFLAGS=-L/usr/local/depot/cuda-8.0/lib/ -lcudart
@@ -26,7 +26,7 @@ else
 LDFLAGS=-L/usr/local/cuda/lib64/ -lcudart
 endif
 NVCC=nvcc
-NVCCFLAGS=-O3 -G -g -m64
+NVCCFLAGS=-O0 -G -g -m64
 
 
 OBJS=$(OBJDIR)/main.o  $(OBJDIR)/saxpy.o
