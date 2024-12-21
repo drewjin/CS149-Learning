@@ -134,6 +134,10 @@ void exclusive_scan(int* input, int N, int* result) {
     }
 }
 
+void exlusive_scan_shared_memory(int* input, int N, int* result) {
+    
+}
+
 //
 // cudaScan --
 //
@@ -193,7 +197,6 @@ double cudaScan(int* inarray, int* end, int* resultarray)
 // Students are not expected to produce implementations that achieve
 // performance that is competition to the Thrust version, but it is fun to try.
 double cudaScanThrust(int* inarray, int* end, int* resultarray) {
-
     int length = end - inarray;
     thrust::device_ptr<int> d_input = thrust::device_malloc<int>(length);
     thrust::device_ptr<int> d_output = thrust::device_malloc<int>(length);
